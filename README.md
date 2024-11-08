@@ -1,32 +1,21 @@
-# Linkage and QTL Mapping Based on NAM Population
+# Multi-Environment Trial (MET) Analysis
+# Guilherme Oliveira, Mandeep Singh, Subash Thapa
+
 Project Overview
 
-This repository contains scripts and data for performing linkage and QTL mapping using a Nested Association Mapping (NAM) population.
-
-Scripts
-
-Linkage_QTL_mappingProject.Rmd
-
-R Markdown file for QTL mapping, using the qtl package in R.
-
-Linkage_map_QTL_Project.html
-
-HTML output of the QTL mapping analysis.
-
-QTL_for_QG.Rmd
-
-R Markdown file for phenotypic data quality checks and QTL mapping, utilizing the MetaPipe R package.
-
-Data Availability
-
-VRS-F2_map.csv
-
-Marker data file.
-
-VRS23.csv
-
-Phenotypic data file.
-
-maize.csv
-
-Combined phenotypic and marker data for the Maize NAM population.
+The following document was developed by Guilherme Oliveira, Mandeep Singh, and Subash Thapa, students at
+South Dakota State University, as a requisite for the PS 746 - Quantitative Genetics course.
+The main objective of this project was to conduct Multi Trial Analysis, covering i) GxE analysis (+ GGE
+analysis) ii) AMMI analysis, iii) GGI analysis, iiv) FW analysis and v) genomic selection approach which
+explores in some way Genotype x Environment interaction (G x E).
+For parts i, ii, iii, iv, we are exploring the open dataset made available by Dias et al. (2018) which
+contains phenotypic data of five drought tolerance traits, measured in 308 hybrids along eight environments
+contrasting for water availability. For practical purposes, we are using a subset of 202 hybrids. The traits
+analyzed were grain yield (GY), ears per plot (EPP), female and male flowering times (FFT and MFT),
+and anthesis-silking interval (ASI). The source code used is from the metan (Olivoto and Lucio, 2020) and
+statgenGxE reference manuals.
+To complete this task, we are exploring the open dataset made available by Crossa et al. 2013 and Montesinos-
+Lopez et al. 2016, 2017 contains the data of 309 double-haploid maize lines conducted in 3 environments, each with three reps of each line. The traits analyzed were grain yield (yield), anthesis silking
+interval (ASI), and plant height (PH). The source code used is from Montesinos-Lopez et al. 2019
+We made minor modifications using the BMTME R package, bringing more interpretations
+and extra analyses.
