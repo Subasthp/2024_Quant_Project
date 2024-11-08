@@ -1,5 +1,5 @@
-# Multi Trial Analysis for Quantitative Genetics
-This repository contains the analysis and code developed as part of the course PS 746 - Quantitative Genetics at South Dakota State University. The project aims to conduct a Multi-Trial Analysis exploring Genotype x Environment Interaction (G x E), including various analysis methods and genomic selection approaches. The analysis uses two different open datasets, as outlined below.
+# Multi-Trial Analysis for Quantitative Genetics
+This repository contains the analysis and code developed in PS 746 - Quantitative Genetics course at South Dakota State University by Guilherme Olivera, Mandeep Singh & Subash Thapa. The project aims to conduct a Multi-Trial Analysis exploring Genotype x Environment Interaction (G x E), including various analysis methods and genomic selection approaches. The analysis uses two different open datasets, as outlined below.
 
 # Project Overview
 The main objective of this project is to conduct a Multi Trial Analysis, covering:
