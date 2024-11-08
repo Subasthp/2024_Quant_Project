@@ -29,10 +29,15 @@ Traits Analyzed:
 The following methods were used for the analysis:
 
 -GxE Analysis: Exploring the interaction between Genotype and Environment to understand how different genotypes perform across multiple environments.
+
 -GGE (Genotype + Genotype x Environment): A graphical approach to visualize the interaction between genotypes and environments.
+
 -AMMI (Additive Main Effects and Multiplicative Interaction): A statistical model used to analyze GxE interactions.
+
 -GGI (Genotypic-Environment Interaction) Analysis: Analyzing the environmental stability of genotypes.
+
 -FW (Factorial Weighted) Analysis: Exploring weighted factors to analyze the GxE interaction.
+
 -Genomic Selection: Approaches that explore the influence of genetic factors on trait performance across environments, considering GxE.
 # Software and Packages Used
 R Packages: The analysis was conducted using the metan (Olivoto and Lucio, 2020) and statgenGxE reference manuals for conducting GxE and other related analyses.
