@@ -10,7 +10,7 @@ The main objective of this project was to conduct Multi Trial Analysis, covering
 # ii) AMMI analysis 
 # iii) GGI analysis
 # iv) FW analysis 
-# v) Genomic selection approach which
+# v) Genomic selection 
 
 For parts i, ii, iii, and iv, we are exploring the open dataset made available by Dias et al. (2018), which
 contains phenotypic data of five drought tolerance traits measured in 308 hybrids along eight environments
