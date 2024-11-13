@@ -11,8 +11,8 @@ The main objective of this project is to conduct a Multi Trial Analysis, coverin
 The project consists of two main parts, each utilizing a different dataset for analysis.
 # Datasets Used
 # Dataset 1: Dias et al. (2018) - Drought Tolerance Traits
-Source: The open dataset made available by Dias et al. (2018) contains phenotypic data of five drought tolerance traits measured in 308 hybrids across 8 environments contrasting for water availability.
-Subset: For practical purposes, a subset of 202 hybrids is used.
+Source: The open dataset made available by Dias et al. (2018) contains phenotypic data of five drought tolerance traits measured in 308 hybrids across eight environments contrasting for water availability.
+Subset: For practical purposes, a subgroup of 202 hybrids is used.
 Traits Analyzed:
 -Grain Yield (GY)
 -Ears per Plot (EPP)
@@ -20,11 +20,12 @@ Traits Analyzed:
 -Male Flowering Time (MFT)
 -Anthesis-Silking Interval (ASI)
 # Dataset 2: Crossa et al. (2013) & Montesinos-Lopez et al. (2016, 2017) - Maize Lines
-Source: The dataset from Crossa et al. (2013) and Montesinos-Lopez et al. (2016, 2017) contains data on 309 double-haploid maize lines tested in 3 environments with 3 replications for each line.
+Source: Crossa et al. (2013) and Montesinos-Lopez et al. (2016, 2017) contain data on 309 double-haploid maize lines tested in 3 environments with three replications for each line.
 Traits Analyzed:
 -Grain Yield (Yield)
 -Anthesis-Silking Interval (ASI)
 -Plant Height (PH)
+
 #Methods Used
 The following methods were used for the analysis:
 
@@ -32,7 +33,7 @@ The following methods were used for the analysis:
 
 -GGE (Genotype + Genotype x Environment): A graphical approach to visualize the interaction between genotypes and environments.
 
--AMMI (Additive Main Effects and Multiplicative Interaction): A statistical model used to analyze GxE interactions.
+-AMMI (Additive Main Effects and Multiplicative Interaction): A statistical model for analyzing GxE interactions.
 
 -GGI (Genotypic-Environment Interaction) Analysis: Analyzing the environmental stability of genotypes.
 
