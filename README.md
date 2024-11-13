@@ -26,7 +26,8 @@ Traits Analyzed:
 -Anthesis-Silking Interval (ASI)
 -Plant Height (PH)
 
-#Methods Used
+# Model Used
+
 The following methods were used for the analysis:
 
 -GxE Analysis: Exploring the interaction between Genotype and Environment to understand how different genotypes perform across multiple environments.
