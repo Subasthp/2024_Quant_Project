@@ -1,0 +1,519 @@
+---
+title: "Multi-Environment Trial (MET) Analysis"
+author: "Guilherme Oliveira, Mandeep Singh, Subash Thapa"
+date: "2024-11-05"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+# Multi-Environment Trial Analysis - PS 756 project
+
+The following document was developed by Guilherme Oliveira, Mandeep Singh, Subash Thapa, students at South Dakota State University, as a requisite for the course PS 746 - Quantitative Genetics. 
+
+The main objective of this project was to conduct Multi Trial Analysis, covering i) GxE analysis (+ GGE analysis) ii) AMMI analysis, iii) GGI analysis, iv) FW analysis and v) genomic selection approach which explores in some way Genotype x Environment interaction (G x E).
+
+For the parts i, ii, iii, iv, we are exploring the open dataset made available by Dias et al. (2018) which contains phenotypic data of five drought tolerance traits, measured in in 308 hybrids along eight environments contrasting for water availability. For practical purposes, we are using a subset of 202 hybrids. The traits analyzed were grain yield (GY), ears per plot (EPP), female and male flowering times (FFT and MFT), and anthesis-silking interval (ASI). The source code used is from the metan (Olivoto and Lucio, 2020) and statgenGxE reference manuals. 
+
+For the part v, we are exploring the open dataset made available by Crossa et al. 2013 and Montesinos-Lopez et al. 2016, 2017 which contains the data of 309 double-haploid maize lines conducted in 3 environments and each environments having 3 reps of each line. The traits analyzed were grain yield (yield), anthesis-silking interval (ASI) and plant height (PH). The source code used is from Montesinos-Lopez et al. 2019 using the BMTME R package, where we did just small modifications, however, bringing more interpretations and extra analyses.
+
+## Directory
+
+```{r}
+setwd("C:/Users/Guilherme.Oliveira/Documents/PS 756 - Final Project")
+getwd()
+```
+## Libraries
+
+The main libraries used for this project to run the Multi-Environment Trial Analysis.
+
+```{r}
+library(statgenGxE)
+library(metan)
+library(tibble)
+library(ggplot2)
+library(tidyverse)
+library(BMTME)
+library(lme4)
+```
+
+## Data
+
+The "pheno" is the dataset which will be used for the parts i, ii, iii, iv while the "G.Maize" and "Data.Maize" will be used for the part v.
+
+```{r}
+pheno <- read.table("pheno_corn_MET.txt", header = TRUE)
+load("C:/Users/Guilherme.Oliveira/Documents/PS 756 - Final Project/G.Maize.RData")
+load("C:/Users/Guilherme.Oliveira/Documents/PS 756 - Final Project/Data.Maize.RDATa")
+```
+
+### Data preparation and exploration 
+
+Before running the parts i, ii, iii, iv, we need to check some very important points. First, we need to check our "pheno" structure, normality, distribution, descriptive statistics etc.
+
+To complete these tasks, we are using some R basic functions + some functions inside the metan package.
+
+## Data strcture
+
+In this analysis the ENV, GEN, REP should be factors, while the traits should be numeric. Also we need, to change our phenotypic data frame to a tibble, being able to run the metan functions.
+
+```{r}
+str(pheno)
+
+pheno$ENV <- as.factor(pheno$ENV)
+pheno$GEN <- as.factor(pheno$GEN)
+pheno$REP <- as.factor(pheno$REP)
+pheno$FFT <- as.numeric(pheno$FFT)
+pheno$MFT <- as.numeric(pheno$MFT)
+pheno$ASI <- as.numeric(pheno$ASI)
+pheno$EPP <- as.numeric(pheno$EPP)
+pheno <- as_tibble(pheno)
+
+str(pheno)
+```
+## Data normality
+
+```{r}
+hist(pheno$FFT)
+shapiro.test(pheno$FFT)
+hist(pheno$MFT)
+shapiro.test(pheno$MFT)
+hist(pheno$ASI)
+shapiro.test(pheno$ASI)
+hist(pheno$EPP)
+shapiro.test(pheno$EPP)
+hist(pheno$GY)
+shapiro.test(pheno$GY)
+```
+Based on the histograms and Shapiro-Wilks, all the traits does not have a normal distribution. There are different ways to get distributions more close to normality, as example, removing outliers or transforming the data. In our case we tested both approaches, however, we are still unable to get higher values than 0.05 in our Shapiro-Wilk analyses. 
+
+The main reason for this is that because we have in our dataset environments with high drought stress affecting the plants, as well as, good environments. In the moment that we pull together the data, we obtain some extremes values (caused by the drought stress), resulting in some normality deviations.
+
+In this sense, we decide to proceed the analysis with our raw values, despite then being completely normal, once, that the main objective of this project is to understand and interpret the MET analysis and develop and/or analyze some previous developed code. Nevertheless, we strongly suggest to pay attention in the data normality and understand how (or not) it can affect the analysis results.
+
+However, in the next codes chunks, we are still providing our code to remove outliers based on the interquartile range (IQR) equations to remove outliers (Q1 - 1.5 x IQR and Q3 + 1.5 x IQR).
+
+## Code for removing outilers
+
+```{r}
+# Code to get and see the boxplots
+
+boxplot.FFT <- boxplot(pheno$FFT, xlab="Boxplot",ylab="FFT")
+boxplot.MFT <- boxplot(pheno$MFT, xlab="Boxplot",ylab="MFT")
+boxplot.ASI <- boxplot(pheno$ASI, xlab="Boxplot",ylab="ASI")
+boxplot.EPP <- boxplot(pheno$EPP, xlab="Boxplot",ylab="EPP")
+boxplot.GY <- boxplot(pheno$GY, xlab="Boxplot",ylab="GY")
+
+# Example to remove outliers for a specific trait
+
+#outliers <- boxplot.GY$out; outliers
+#pheno <- pheno[-which(pheno$GY%in%outliers),]
+#shapiro.test(pheno$GY)
+```
+## Information of the genotypes
+
+The metan package has a bunch of different functions which provide valuable information to check, manipulate, and summarize data. In the next code chunks we are going to show just a small portion of them, before starting the main analyzes required by this project. However, if someone is interested in learning more about these preliminary steps, here is the link for the paper: *https://besjournals.onlinelibrary.wiley.com/doi/full/10.1111/2041-210x.13384* that give the access to supplementary information and R codes. 
+
+First, the metan package has functions that permits to check means and coefficient of variation (CV) for each genotype across the environments. It can be useful, as a first way to understand about data quality, finding the best and worst ones, as well, based on the CV, having some idea about genotype by environment interaction.
+
+```{r include=FALSE}
+mean_by(pheno, GEN)
+cv_by(pheno, GEN)
+```
+
+Also, using the metan functions, we can collect the descriptive analysis by trait.
+
+```{r}
+desc_stat(pheno, stats = "all")
+```
+In this analysis, we can observe some very extreme values for CV, as example the ASI CV. In this case, the CV is higher than 100%, meaning that our standard deviation is larger than our mean, in other words, there is a high variability for this trait. Also, we got a high CV for GY, close to 40%.
+
+Again, the main reason to obtain these results is the nature of the environments where the data was collected, having some of them, extreme drought effects. Traits as ASI and GY are extremely affected by drought, so high CVs to these traits, in our analysis conditions are expected. 
+
+If necessary, the same function provides information about single locations, where we can confirm our hypothesis that some environments (drought ones) are pushing the CVs to high values. This code lines can be useful for removing traits or environments with high coefficient of variation. 
+
+```{r}
+desc_stat(pheno,
+          stats = ("mean, se, cv, max, min"),
+          by = ENV)
+```
+
+Something very interesting that also the metan package provides is a function that shows the best lines (higher phenotypic values) in each of these environments. We can see that there is no replicate for GY, meaning that for each environment, there was a different best hybrid.
+
+```{r}
+ge_winners(pheno, ENV, GEN, resp = everything())
+```
+
+In addition, sometimes numbers in tables are hard to visualize and/or to take other conclusions, which are more easy by plots.
+
+So in the next code chunk, we are showing how to do some heatmaps and line plots to collect more applied information for specific lines across the environments.
+
+So, the first subset, shows how to collect a range of genotypes and the second subset shows how to select very specific lines.
+
+```{r}
+subset_pheno <- pheno %>% 
+  filter(GEN %in% levels(GEN)[1:10]) %>% 
+  droplevels()
+a <- ge_plot(subset_pheno, ENV, GEN, GY); a
+b <- ge_plot(subset_pheno, ENV, GEN, GY, type = 2); b
+
+subset_pheno2 <- pheno %>% filter(GEN %in% c(levels(GEN)[1], levels(GEN)[137]))
+c <- ge_plot(subset_pheno2, ENV, GEN, GY); c
+d <- ge_plot(subset_pheno2, ENV, GEN, GY, type = 2); d
+```
+
+So, now, we have a good idea bout our data, we are going to do the main analyses required for this project. 
+
+# Part i) GxE analysis (+GGE analysis)
+
+In this first step, we are doing some analysis to understand more the genotype x environment interaction. In addition, we also running some GGE analysis, aiming to understand better the group of environments (mega-environments).
+
+For the first analysis, we are using the statgenGxE package. Thus, we need to convert the data according to the package requirements. In addition, we are running the some analysis (not all) for the subset_pheno, aiming to understand how conclusions can (or not) differ when we have more data.
+
+```{r}
+phenoTD <- statgenSTA::createTD(data = pheno, genotype = "GEN", 
+                                trial = "ENV")
+
+phenoTD2 <- statgenSTA::createTD(data = subset_pheno, genotype = "GEN", 
+                                trial = "ENV")
+```
+
+Using a function from the statgenGxE, we are running a mixed model, where we are able to extract the variance components.
+
+First, we are only checking yield. 
+
+```{r}
+phenoVarComp <- gxeVarComp(TD = phenoTD, trait = "GY")
+summary(phenoVarComp)
+```
+
+More than 50% of the variation observed was due the trial. It was expected, because, as explained, these trials are conducted in different conditions of water availability. 
+
+We also can use some loops to test for all the traits.
+
+It is important that we are using a lot this vector with the traits ("GY", "FFT", "MFT", "ASI", "EPP") in our loops, so we are not calling it all the time, but, pay attention that the loops using the 'traits' are calling back this vector.
+
+```{r include=FALSE}
+traits <- c("GY", "FFT", "MFT", "ASI", "EPP")
+for (trait in traits) {
+  phenoVarComp <- gxeVarComp(TD = phenoTD, trait = trait)
+  var_name <- paste0("phenoVarComp", trait)
+  assign(var_name, phenoVarComp)
+  print(paste("Summary for trait:", trait))
+  print(summary(phenoVarComp))
+  print(paste("Variance components for trait:", trait))
+  print(vc(phenoVarComp))
+}
+```
+
+Once we have the variance components, we also can estimate the heritability for the traits. Let's check for all the traits.
+
+```{r}
+herit(phenoVarCompGY)
+herit(phenoVarCompFFT)
+herit(phenoVarCompMFT)
+herit(phenoVarCompASI)
+herit(phenoVarCompEPP)
+```
+It is a little surprising to get a high heritability (0.71) for grain yield (quantitative trait), specifically for the trials conditions from this dataset. 
+Something very interesting which this package permits us is to predict the genotype main effect based on the mixed model analysis. 
+
+```{r}
+for (trait in traits) {
+  var_name <- paste0("phenoVarComp", trait)
+  phenoVarComp_obj <- get(var_name)
+  predGeno <- predict(phenoVarComp_obj)
+  print(head(predGeno))
+  predGenoTrial <- predict(phenoVarComp_obj, predictLevel = "trial")
+  print(head(predGenoTrial))
+}
+```
+
+In this example, we can see that for example based on the mixed model and evaluation across all the locations for GY, the genotype 8 is the best, and the genotype 9 is the worst, based on the predictions.
+
+Extracting the variance components, getting the heritability, being able to do predictions are main analysis in the GxE spectrum. However, we would like to go more deep, and also finding something is very useful for some research areas, as example plant breeding, mega environments. To complete this task, we are going back to the metan package.
+
+Initially, we need to fit a gge model. Here, we are testing with the subset_pheno.
+
+```{r}
+gge_model <- gge(pheno, ENV, GEN, GY)
+gge_model2 <- gge(subset_pheno, ENV, GEN, GY)
+```
+
+As the statgenGxE, we also can do predictions, however, because, the models work a little different, the results will be similar, but not the same results.
+
+```{r}
+predict(gge_model)
+predict(gge_model2)
+```
+
+The metan package has a variety of biplots that explore the GGE (Genotype plus GxE), but, for practical purposes, we are only selecting the biplot that ranks the environments, bringing, at some degree, the relationship between environments.
+
+```{r}
+biplot_ranking <- plot(gge_model,
+type = 6,
+col.gen = "black",
+col.env = "black",
+size.text.env = 10,
+axis_expand = 1.5)
+biplot_ranking
+
+biplot_ranking <- plot(gge_model2,
+type = 6,
+col.gen = "black",
+col.env = "black",
+size.text.env = 10,
+axis_expand = 1.5)
+biplot_ranking
+```
+
+Basically, in the first biplots, what is close to the black line are considered good environments, while the environments far from the line, differ from the best environments. For example the E5 looks a very good environment, according to this line, while the E8 is not so good (drought stress). It also give to us some idea, about which environments can be grouped as on unique environment, and which ones, does not belong to the "good" pool.
+
+However, these conclusions changes drastically when we only evaluated a small subset of hybrids, being a good example of how the sample size affects some important conclusions in MET analysis. 
+
+Below is the code to rank the environments only based on GY, what makes more sense, for example, in the breeding research area. However, we also are providing some code (loop) to test for all the traits.
+
+```{r include=FALSE}
+for (trait in traits) {
+  gge_model <- gge(pheno, ENV, GEN, trait)
+  biplot_ranking <- plot(gge_model,
+                         type = 6,
+                         col.gen = "black",
+                         col.env = "black",
+                         size.text.env = 10,
+                         axis_expand = 1.5)
+  print(biplot_ranking)
+}
+```
+
+# Part iii) AMMI analysis
+
+The AMMI stands for the additive main effect and multiplicative interaction. In this model, the additive main effects are the genotypes and the trials, coming from the ANOVA results, where the multiplicative interaction factors are coming from a PCA analysis on the interactions residuals (genotype by environment means after adjustment for additive genotype and environment effects).
+
+Therefore, in the code chunk below we are running this model only for GY trait, aiming to evaluate the genotypes performance across the environments, and finding the stable ones.
+
+Also, from here, we decide, to run the analysis with a subset of genotypes, to show how the graphs look when we have a small or big number of genotypes and how it can affect our conclusions.
+
+```{r}
+AMMI_model <- performs_ammi(pheno, ENV, GEN, REP, GY)
+AMMI_model_2 <- performs_ammi(subset_pheno, ENV, GEN, REP, GY)
+```
+
+The values clearly showed a strong genotype x environment interaction in both scenarios.
+
+There are different ways to explore the results obtained by the AMMI model. One good way is developing a biplot, where we are using as axis our trait and the first PC. 
+
+```{r}
+AMMI_biplot_GY <- plot_scores(AMMI_model,
+col.gen = "black",
+col.env = "gray70",
+col.segm.env = "gray70",
+plot_theme = theme_metan_minimal())
+AMMI_biplot_GY
+
+AMMI_biplot_GY2 <- plot_scores(AMMI_model_2,
+col.gen = "black",
+col.env = "gray70",
+col.segm.env = "gray70",
+plot_theme = theme_metan_minimal())
+AMMI_biplot_GY2
+```
+
+In this biplot we can take a look, from each environments are more similar, or thinking in the other side, finding the environment that have the same best lines. Also we need to pay attention in the quadrants, as well as, in the directions of our environments, because it represents the relationship between environments. For example, E6 and E2 are very similar to each other, however, they are completely different from the E5, E1, E3. The hybrid 101 and 138 apparently have high yield on the environment 6 and 2 and it is low yield in environments 5,3, and 1. 
+
+The conclusions are very similar for our small dataset, however we have some deviation about the environments correlation.
+
+We also can check if we obtain similar results comparing PC1 and PC2.
+
+```{r}
+AMMI_biplot_PCs <- plot_scores(AMMI_model,
+type = 2,
+polygon = T,
+col.segm.env = "#FFFFFF00", # Transparent
+axis.expand = 1.5,
+plot_theme = theme_metan(grid = "both"))
+AMMI_biplot_PCs
+
+AMMI_biplot_PCs_2 <- plot_scores(AMMI_model_2,
+type = 2,
+polygon = T,
+col.segm.env = "#FFFFFF00", # Transparent
+axis.expand = 1.5,
+plot_theme = theme_metan(grid = "both"))
+AMMI_biplot_PCs_2
+```
+
+The results are pretty the same. 
+
+Also we can check "which-won-where" based on our AMMI model.
+
+```{r}
+AMMI_biplot_nominal <- plot_scores(AMMI_model, type = 4)
+AMMI_biplot_nominal
+
+AMMI_biplot_nominal_2 <- plot_scores(AMMI_model_2, type = 4)
+AMMI_biplot_nominal_2
+```
+
+In these plots, we can observe the change in rankings, as example, in the first plot where the line 69 is a good one in the E8, however, its rankings drops drastically across better environments.
+
+Again, we only conducted for GY, because it the most important trait in plant breeding, and makes more sense to take conclusions of genotype stability based on this trait.
+
+However, if someone would like to check for all the traits, the code below has a loop that conducts the graphs for all the traits.
+
+```{r include=FALSE}
+for (trait in traits) {
+  AMMI_model <- performs_ammi(pheno, ENV, GEN, REP, trait)
+  AMMI_biplot <- plot_scores(AMMI_model,
+                             col.gen = "black",
+                             col.env = "gray70",
+                             col.segm.env = "gray70",
+                             plot_theme = theme_metan_minimal())
+  print(AMMI_biplot)
+  AMMI_biplot_PCs <- plot_scores(AMMI_model,
+                                 type = 2,
+                                 polygon = TRUE,
+                                 col.segm.env = "#FFFFFF00", # Transparent
+                                 axis.expand = 1.5,
+                                 plot_theme = theme_metan(grid = "both"))
+  print(AMMI_biplot_PCs)
+  AMMI_biplot_nominal <- plot_scores(AMMI_model, type = 4)
+  print(AMMI_biplot_nominal)
+}
+```
+
+# Part iii) GGI analysis
+
+The GGI stands for genotype by group interaction. The main differences from the previous analysis is that now, we are grouping some hybrids according to their similarities, considering all the traits, and estimating group-by-environment interactions.
+
+So, the package uses a function to cluster genotypes based on their means for all the traits. Again, here, we are using the pheno and subset_pheno.
+
+```{r}
+mean_gen <-
+pheno %>%
+means_by(GEN) %>%
+column_to_rownames("GEN")
+d2 <- clustering(mean_gen)
+
+mean_gen_2 <-
+subset_pheno %>%
+means_by(GEN) %>%
+column_to_rownames("GEN")
+d2_2 <- clustering(mean_gen_2)
+```
+
+After clustering the genotypes, we can plot this cluster in a dendrogram shape, also, to identify how many cluster we got in this analysis.
+
+```{r}
+plot(d2)
+plot(d2_2)
+```
+
+For the biggest dataset, we have a lot of cluster, meaning that small number of genotypes in each cluster, while in the subset pheno, based on the threshold, we only have two cluster.
+
+One big problem of this clustering analysis is that we do not know if all the traits are in fact contributing for the cluster building, so, we need to find each ones are important and each ones can be removed.
+
+```{r}
+sel_var <- clustering(mean_gen, selvar = TRUE)
+sel_var2 <- clustering(mean_gen_2, selvar = TRUE)
+```
+
+For the biggest dataset, only FFT and EPP were selected, while for the small dataset: FFT, MFT and EPP were selected. Based on these clusters, we can extract implement this information in other analysis and see how this group information can be used in favor of the researcher. 
+
+# Part iv) FW analysis
+
+The FW stands for Finlay-Wilkinson analysis, where the GxE interaction is estimated heterogeneity of the slopes of a regression of individual genotypic performance on an environmental index.
+
+```{r}
+phenoFW <- gxeFw(TD = phenoTD, trait = "GY")
+summary(phenoFW)
+
+phenoFW2 <- gxeFw(TD = phenoTD2, trait = "GY")
+summary(phenoFW2)
+```
+
+It is interesting that we in the FW output, we can obtain also environment rankings based on this model, as well as, getting some environment effects per se and in environments effects on the hybrids.
+
+Additionally, we can also plot, to take a look how the hybrids performed across the environments and select some specific hybrids based on the rankings that we got in the previous code.
+
+```{r}
+plot(phenoFW, plotType = "line")
+plot(phenoFW2, plotType = "line")
+plot(phenoFW, plotType = "trellis", genotypes = c("1", "3", "8", "9"))
+```
+Also, it is possible check the hybrids performance through a scatter plot, comparing their distribution in the best and worst environment.
+
+```{r}
+plot(phenoFW, plotType = "scatterFit")
+plot(phenoFW2, plotType = "scatterFit")
+```
+As the other examples, we also are providing a code to run for all the traits if necessary or desired.
+
+```{r include=FALSE}
+phenoFW_results <- list()
+for (trait in traits) {
+  phenoFW <- gxeFw(TD = phenoTD, trait = trait)
+  phenoFW_results[[trait]] <- phenoFW
+  cat("Summary for trait:", trait, "\n")
+  print(summary(phenoFW))
+  plot(phenoFW, plotType = "line", main = paste("Line Plot for", trait))
+  plot(phenoFW, plotType = "scatterFit", main = paste("Scatter Fit Plot for", trait))
+}
+```
+# Extra - Multi-trait stability index
+
+We also decide to bring some extra analysis which can help in the breeding practices. In this datataset, we have a lot of traits and environments. So it creates a very complex scenario, making difficult to identify which genotype based on all this information are the best. So, this analysis create a selection index based on all the traits and give to us a very graphical result to identify the best ones.
+
+The code below is to set the models.
+
+```{r include=FALSE}
+model_MTSI <- waasb(pheno, ENV, GEN, REP,
+resp = c(GY, ASI, FFT, MFT, EPP),
+random = "gen", # Default
+wresp = rep(65, 5), # Defaults to 50
+mresp = rep("h, l")) # Default
+
+model_MTSI2 <- waasb(subset_pheno, ENV, GEN, REP,
+resp = c(GY, ASI, FFT, MFT, EPP),
+random = "gen", # Default
+wresp = rep(65, 5), # Defaults to 50
+mresp = rep("h, l")) # Default
+```
+And now, we are obtaining the indexes considering all the traits.
+
+```{r}
+get_model_data(model_MTSI, what = "WAASBY")
+get_model_data(model_MTSI2, what = "WAASBY")
+
+index <- mtsi(model_MTSI,
+index = "waasby",
+mineval = 0.7,
+verbose = FALSE)
+print(index)
+
+index2 <- mtsi(model_MTSI2,
+index = "waasby",
+mineval = 0.7,
+verbose = FALSE)
+print(index2)
+```
+Lets plot to find the best one according our indexes
+
+```{r}
+plot(index)
+plot(index2)
+```
+
+# References
+
+*Crossa, J., Y. Beyene, S. Kassa, P. Pérez-Rodríguez, J. M. Hickey, et al., 2013 Genomic prediction in maize breeding populations with genotyping-by-sequencing. G3: Genes|Genomes|Genetics (Bethesda) 3, 1903–1926. https://doi.org/10.1534/g3.113.008227*
+
+*Dias, K.O.D.G., Gezan, S.A., Guimarães, C.T. et al. Improving accuracies of genomic predictions for drought tolerance in maize by joint modeling of additive and dominance effects in multi-environment trials. Heredity 121, 24–37 (2018). https://doi.org/10.1038/s41437-018-0053-6*
+
+*Montesinos-López, O. A., A. Montesinos-López, J. Crossa, F. Toledo,O. Pérez-Hernández et al., 2016 A Genomic Bayesian Multi-trait and Multi-environment model. G3: Genes|Genomes|Genetics (Bethesda),6:2725–2744. https://doi.org/10.1534/g3.116.032359*
+
+*Montesinos-López, O. A., A. Montesinos-López, J. Crossa, J. C. Montesinos-López, F. J. Luna-Vázquez et al., 2017 A Variational Bayes Genomic-Enabled Prediction Method with Genotype · Environment Interaction. G3: Genes, Genomes. Genetics 7: 1833–1853*
+
+*Osval A Montesinos-López, Abelardo Montesinos-López, Francisco Javier Luna-Vázquez, Fernando H Toledo, Paulino Pérez-Rodríguez, Morten Lillemo, José Crossa, An R Package for Bayesian Analysis of Multi-environment and Multi-trait Multi-environment Data for Genome-Based Prediction, G3 Genes|Genomes|Genetics, Volume 9, Issue 5, 1 May 2019, Pages 1355–1369, https://doi.org/10.1534/g3.119.400126*
+
+*Olivoto T, Lúcio AD. metan: An R package for multi-environment trial analysis. Methods Ecol Evol. 2020; 11: 783–789. https://doi.org/10.1111/2041-210X.13384*
